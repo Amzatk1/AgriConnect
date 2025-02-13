@@ -1,0 +1,18 @@
+platform :ios, '15.0'
+
+use_frameworks!
+use_modular_headers!
+
+# CocoaPods analytics reporting
+ENV['COCOAPODS_DISABLE_STATS'] = 'true'
+
+# Locate the Flutter installation directory
+flutter_root = `which flutter`.strip.chomp("/bin/flutter")
+load File.join(flutter_root, 'packages', 'flutter_tools', 'bin', 'podhelper.rb')
+
+target 'Runner' do
+  use_frameworks!
+  use_modular_headers!
+
+  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+end

@@ -1,44 +1,48 @@
 plugins {
     id "com.android.application"
     id "kotlin-android"
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
+    id "com.google.gms.google-services" // ✅ Ensures Firebase Services are applied
     id "dev.flutter.flutter-gradle-plugin"
 }
 
 android {
-    namespace = "com.example.agriconnect"
-    compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
-    }
-
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_1_8
-    }
+    namespace = "com.yourdomain.agriconnect" // ✅ Change this to your actual package name
+    compileSdk = 34 // ✅ Explicitly set compileSdk version
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.agriconnect"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
+        applicationId "com.yourdomain.agriconnect" // ✅ Ensure this matches your package name
+        minSdk = 21 // ✅ Required for Firebase compatibility
+        targetSdk = 34 // ✅ Updated target SDK version
+        versionCode = 1
+        versionName = "1.0"
+
+        multiDexEnabled true // ✅ Needed for Firebase dependencies
     }
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.debug
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.debug // ✅ Ensures debug signing is applied
         }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17 // ✅ Updated to Java 17 for compatibility
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = "17" // ✅ Updated for better performance
     }
 }
 
 flutter {
     source = "../.."
 }
+
+dependencies {
+    implementation "androidx.multidex:multidex:2.0.1" // ✅ Added MultiDex support
+}
+
+apply plugin: 'com.google.gms.google-services' // ✅ Ensures Firebase is initialized properly

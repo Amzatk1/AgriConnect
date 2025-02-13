@@ -1,7 +1,12 @@
 buildscript {
+    repositories {
+        google()  // ✅ Added Google Repository
+        mavenCentral()  // ✅ Added Maven Central Repository
+        maven { url 'https://jitpack.io' } // ✅ Added JitPack Repository for dependencies
+    }
     dependencies {
-        classpath 'com.android.tools.build:gradle:7.3.0'  // Ensure latest Gradle version
-        classpath 'com.google.gms:google-services:4.3.15' // Firebase Google Services
+        classpath 'com.android.tools.build:gradle:8.2.2' // ✅ Updated to latest Gradle Plugin
+        classpath 'com.google.gms:google-services:4.4.0' // ✅ Updated Firebase Services Plugin
     }
 }
 
@@ -9,18 +14,10 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+        maven { url 'https://jitpack.io' } // ✅ Ensures JitPack is available
     }
 }
 
-rootProject.buildDir = "../build"
-subprojects {
-    project.buildDir = "${rootProject.buildDir}/${project.name}"
-}
-subprojects {
-    project.evaluationDependsOn(":app")
-}
-
-tasks.register("clean", Delete) {
+tasks.register("clean", Delete) { // ✅ Added Clean Task for Better Gradle Management
     delete rootProject.buildDir
 }
-apply plugin: 'com.google.gms.google-services'
