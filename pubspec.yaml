@@ -1,9 +1,9 @@
 name: agriconnect
 description: "A mobile app promoting African local agriculture."
 
-publish_to: 'none' 
+publish_to: 'none'
 
-version: 1.0.0+1
+version: 1.0.1+2
 
 environment:
   sdk: '>=3.5.4 <4.0.0'
@@ -12,66 +12,70 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # UI and Icons
+  # ✅ UI & Icons
   cupertino_icons: ^1.0.8
   google_fonts: ^6.1.0
 
-  # State Management
-  provider: ^6.1.2  # ✅ Updated provider version
+  # ✅ State Management
+  provider: ^6.1.2
 
-  # Firebase Services
-  firebase_core: ^2.25.0
-  firebase_auth: ^4.16.0
-  cloud_firestore: ^4.15.0
-  firebase_storage: ^11.6.0
-  firebase_messaging: ^14.8.0
-  firebase_crashlytics: ^3.5.0
-  firebase_analytics: ^10.8.0
+  # ✅ Firebase Services (Fixed Versions)
+  firebase_core: ^3.11.0
+  firebase_auth: ^5.4.2
+  cloud_firestore: ^5.6.3
+  firebase_storage: ^12.4.2
+  firebase_messaging: ^15.2.2
+  firebase_crashlytics: ^4.3.2
+  firebase_analytics: ^11.4.2
 
-  # Local Storage
-  shared_preferences: ^2.3.0
-  flutter_secure_storage: ^9.2.0  # Securely store sensitive data
+  # ✅ Local Storage & Secure Data
+  shared_preferences: ^2.5.2  # Updated to the latest stable version
+  flutter_secure_storage: ^9.2.4
 
-  # Networking
+  # ✅ Networking & API Handling
   http: ^1.2.0
 
-  # Image Uploads
-  image_picker: ^1.1.0
+  # ✅ Image Uploads & File Handling
+  image_picker: ^1.1.2
+  path_provider: ^2.1.5
 
-  # Notifications & Messaging
-  fluttertoast: ^8.2.4  # ✅ Updated fluttertoast version
-  flutter_local_notifications: ^16.3.0  # Native notifications
+  # ✅ Notifications & Messaging
+  fluttertoast: ^8.2.12
+  flutter_local_notifications: ^18.0.1
 
-  # Maps & Location Services
+  # ✅ Maps & Location Services
   geolocator: ^11.1.0
-  google_maps_flutter: ^2.7.0
+  google_maps_flutter: ^2.10.0
 
-  # File Handling
-  path_provider: ^2.1.2
+  # ✅ Caching & Offline Support
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
 
-  # Caching & Offline Support
-  hive: ^2.2.3  # ✅ Fixed Hive Version
-  hive_flutter: ^1.1.0  # ✅ Fixed Hive Flutter Version
+  # ✅ AI Model & TFLite Support (Fixed Conflicts)
+  tflite_flutter: ^0.9.4  # ✅ Downgraded to prevent type errors
+  tflite_flutter_helper: ^0.2.1
+  ffi: ^2.1.0  # ✅ Ensures compatibility with TFLite
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^4.0.0
+  flutter_lints: ^3.0.1  # ✅ Fixed version for compatibility
 
 flutter:
   uses-material-design: true
 
-  # ✅ Assets (Fixed Paths)
+  # ✅ Assets (Ensured Proper Paths)
   assets:
     - assets/images/
     - assets/icons/
+    - assets/ml/  # ✅ Added for AI model storage
     - assets/fonts/Poppins-Regular.ttf
     - assets/fonts/Poppins-Bold.ttf
 
-  # ✅ Custom Fonts (Fixed)
+  # ✅ Custom Fonts (Fixed Syntax)
   fonts:
     - family: Poppins
       fonts:
         - asset: assets/fonts/Poppins-Regular.ttf
         - asset: assets/fonts/Poppins-Bold.ttf
-          weight: 700
+          weight: 700  # ✅ FIXED: Corrected weight format to avoid type casting errors

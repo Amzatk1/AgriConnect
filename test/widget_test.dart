@@ -4,9 +4,8 @@ import 'package:agriconnect/main.dart';
 
 void main() {
   testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const AgriConnectApp()); // ✅ Used const to improve performance
-
+    // ✅ Provide a default isDarkMode value (false)
+    await tester.pumpWidget(const AgriConnectApp(isDarkMode: false));
 
     // Verify that our counter starts at 0.
     expect(find.text('0'), findsOneWidget);

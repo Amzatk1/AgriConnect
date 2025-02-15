@@ -1,48 +1,55 @@
 plugins {
     id "com.android.application"
     id "kotlin-android"
-    id "com.google.gms.google-services" // ✅ Ensures Firebase Services are applied
+    id "com.google.gms.google-services" // ✅ Firebase Plugin for Android
     id "dev.flutter.flutter-gradle-plugin"
 }
 
 android {
-    namespace = "com.yourdomain.agriconnect" // ✅ Change this to your actual package name
-    compileSdk = 34 // ✅ Explicitly set compileSdk version
+    namespace "com.example.agriconnect" // ✅ Ensure this matches Firebase project setup
+    compileSdk 34 // ✅ Ensure compatibility with Android 14
 
     defaultConfig {
-        applicationId "com.yourdomain.agriconnect" // ✅ Ensure this matches your package name
-        minSdk = 21 // ✅ Required for Firebase compatibility
-        targetSdk = 34 // ✅ Updated target SDK version
-        versionCode = 1
-        versionName = "1.0"
+        applicationId "com.example.agriconnect" // ✅ Matches Firebase and `google-services.json`
+        minSdk 21 // ✅ Minimum required for Firebase
+        targetSdk 34 // ✅ Latest stable Android version
+        versionCode 1
+        versionName "1.0"
 
         multiDexEnabled true // ✅ Needed for Firebase dependencies
+    }
+
+    signingConfigs {
+        debug {
+            storeFile file("debug.keystore") // ✅ Debug signing config
+        }
     }
 
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.debug // ✅ Ensures debug signing is applied
+            signingConfig signingConfigs.debug // ✅ Prevents build failure in debug mode
         }
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17 // ✅ Updated to Java 17 for compatibility
+        sourceCompatibility JavaVersion.VERSION_17 // ✅ Updated to Java 17
         targetCompatibility JavaVersion.VERSION_17
     }
 
     kotlinOptions {
-        jvmTarget = "17" // ✅ Updated for better performance
+        jvmTarget = "17" // ✅ Ensures Kotlin compatibility
     }
 }
 
 flutter {
-    source = "../.."
+    source "../.."
 }
 
 dependencies {
-    implementation "androidx.multidex:multidex:2.0.1" // ✅ Added MultiDex support
+    implementation "androidx.multidex:multidex:2.0.1" // ✅ MultiDex support for Firebase
 }
 
-apply plugin: 'com.google.gms.google-services' // ✅ Ensures Firebase is initialized properly
+// ✅ Ensure Firebase is correctly applied
+apply plugin: 'com.google.gms.google-services'

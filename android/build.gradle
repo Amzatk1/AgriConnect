@@ -1,12 +1,12 @@
 buildscript {
     repositories {
-        google()  // ✅ Added Google Repository
-        mavenCentral()  // ✅ Added Maven Central Repository
-        maven { url 'https://jitpack.io' } // ✅ Added JitPack Repository for dependencies
+        google()  // ✅ Google Repository for Android dependencies
+        mavenCentral()  // ✅ Maven Central for additional dependencies
+        maven { url 'https://jitpack.io' } // ✅ JitPack Repository for third-party libraries
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.2.2' // ✅ Updated to latest Gradle Plugin
-        classpath 'com.google.gms:google-services:4.4.0' // ✅ Updated Firebase Services Plugin
+        classpath 'com.android.tools.build:gradle:8.2.2' // ✅ Updated Android Gradle Plugin
+        classpath 'com.google.gms:google-services:4.4.0' // ✅ Firebase Services Plugin (Latest Stable)
     }
 }
 
@@ -14,10 +14,11 @@ allprojects {
     repositories {
         google()
         mavenCentral()
-        maven { url 'https://jitpack.io' } // ✅ Ensures JitPack is available
+        maven { url 'https://jitpack.io' }
     }
 }
 
-tasks.register("clean", Delete) { // ✅ Added Clean Task for Better Gradle Management
+// ✅ Clean task to delete build directory when running `flutter clean`
+tasks.register("clean", Delete) {
     delete rootProject.buildDir
 }

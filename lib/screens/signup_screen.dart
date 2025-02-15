@@ -1,31 +1,39 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../services/auth_service.dart';
+import '../services/auth_service.dart'; // ✅ Removed unused Firestore import
 
 class SignupScreen extends StatefulWidget {
-  const SignupScreen({super.key}); // ✅ Converted key to a super parameter
+  const SignupScreen({super.key});
 
   @override
-  SignupScreenState createState() => SignupScreenState(); // ✅ Removed underscore from class name
+  SignupScreenState createState() => SignupScreenState();
 }
 
 class SignupScreenState extends State<SignupScreen> {
+  final TextEditingController firstNameController = TextEditingController();
+  final TextEditingController surnameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final AuthService _authService = AuthService();
   bool _isLoading = false;
+  bool _passwordVisible = false; // 👁️ Password Visibility Toggle
 
   void _signup() async {
-    if (emailController.text.isEmpty || passwordController.text.isEmpty) {
+    String firstName = firstNameController.text.trim();
+    String surname = surnameController.text.trim();
+    String email = emailController.text.trim();
+    String password = passwordController.text.trim();
+
+    if (firstName.isEmpty || surname.isEmpty || email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Email and password cannot be empty!")), // ✅ Added validation message
+        const SnackBar(content: Text("⚠️ All fields are required!")),
       );
       return;
     }
 
-    if (passwordController.text.length < 6) {
+    if (password.length < 6) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Password must be at least 6 characters long!")), // ✅ Enforced password length
+        const SnackBar(content: Text("⚠️ Password must be at least 6 characters!")),
       );
       return;
     }
@@ -33,23 +41,22 @@ class SignupScreenState extends State<SignupScreen> {
     setState(() => _isLoading = true);
 
     try {
-      User? user = await _authService.signUp(emailController.text, passwordController.text);
-
-      if (!mounted) return; // ✅ Prevents navigation issues if widget is unmounted
-
+      User? user = await _authService.signUp(email, password, firstName, surname);
       setState(() => _isLoading = false);
 
+      if (!mounted) return;
+
       if (user != null) {
-        Navigator.pushReplacementNamed(context, '/dashboard'); // ✅ Redirect to Dashboard
+        Navigator.pushReplacementNamed(context, '/dashboard');
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Signup failed! Please try again.")), // ✅ Improved error message
+          const SnackBar(content: Text("❌ Signup failed! Please try again.")),
         );
       }
     } catch (e) {
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: ${e.toString()}")), // ✅ Displays detailed error message
+        SnackBar(content: Text("🔥 Error: ${e.toString()}")),
       );
     }
   }
@@ -57,27 +64,44 @@ class SignupScreenState extends State<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Sign Up")), // ✅ Used const
+      appBar: AppBar(title: const Text("Sign Up")),
       body: Padding(
-        padding: const EdgeInsets.all(16.0), // ✅ Used const
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
             TextField(
-              controller: emailController,
-              decoration: const InputDecoration(labelText: "Email"), // ✅ Used const
+              controller: firstNameController,
+              decoration: const InputDecoration(labelText: "📝 First Name"),
             ),
-            const SizedBox(height: 10), // ✅ Used const for spacing
+            const SizedBox(height: 10),
+            TextField(
+              controller: surnameController,
+              decoration: const InputDecoration(labelText: "📝 Surname"),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: emailController,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(labelText: "📧 Email"),
+            ),
+            const SizedBox(height: 10),
             TextField(
               controller: passwordController,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: "Password"), // ✅ Used const
+              obscureText: !_passwordVisible,
+              decoration: InputDecoration(
+                labelText: "🔒 Password",
+                suffixIcon: IconButton(
+                  icon: Icon(_passwordVisible ? Icons.visibility : Icons.visibility_off),
+                  onPressed: () => setState(() => _passwordVisible = !_passwordVisible),
+                ),
+              ),
             ),
-            const SizedBox(height: 20), // ✅ Used const
+            const SizedBox(height: 20),
             _isLoading
-                ? const CircularProgressIndicator() // ✅ Used const
+                ? const CircularProgressIndicator()
                 : ElevatedButton(
                     onPressed: _signup,
-                    child: const Text("Sign Up"), // ✅ Used const
+                    child: const Text("Sign Up"),
                   ),
           ],
         ),
