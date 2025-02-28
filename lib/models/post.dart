@@ -1,38 +1,37 @@
-import 'package:cloud_firestore/cloud_firestore.dart'; // ✅ Import Firestore
-
 class Post {
   final String id;
-  final String userId;
   final String title;
   final String description;
+  final String userId;
   final DateTime timestamp;
 
   Post({
     required this.id,
-    required this.userId,
     required this.title,
     required this.description,
+    required this.userId,
     required this.timestamp,
   });
 
-  // ✅ Convert Firestore Document to Post Object
-  factory Post.fromMap(String id, Map<String, dynamic> data) {
+  // ✅ Convert JSON to Post Model
+  factory Post.fromJson(Map<String, dynamic> json) {
     return Post(
-      id: id,
-      userId: data['userId'] ?? '',
-      title: data['title'] ?? '',
-      description: data['description'] ?? '',
-      timestamp: (data['timestamp'] is Timestamp) ? (data['timestamp'] as Timestamp).toDate() : DateTime.now(),
+      id: json['id'].toString(),  // Convert ID to String if needed
+      title: json['title'] ?? '',
+      description: json['description'] ?? '',
+      userId: json['userId'] ?? '',
+      timestamp: DateTime.parse(json['timestamp']),
     );
   }
 
-  // ✅ Convert Post Object to Firestore Document
-  Map<String, dynamic> toMap() {
+  // ✅ Convert Post Model to JSON (for API requests)
+  Map<String, dynamic> toJson() {
     return {
-      'userId': userId,
+      'id': id,
       'title': title,
       'description': description,
-      'timestamp': Timestamp.fromDate(timestamp), // ✅ Converts DateTime to Firestore Timestamp
+      'userId': userId,
+      'timestamp': timestamp.toIso8601String(),
     };
   }
 }

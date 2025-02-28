@@ -1,96 +1,230 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class AuthService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final String baseUrl = 'http://localhost:8000/api';
+  final storage = const FlutterSecureStorage();
 
-  // ✅ Get the currently logged-in user
-  User? get currentUser => _auth.currentUser;
-
-  // 🔹 Reset Password
-  Future<bool> resetPassword(String email) async {
+  // ✅ **Login with Django API**
+  Future<bool> login(String email, String password) async {
     try {
-      await _auth.sendPasswordResetEmail(email: email.trim());
-      debugPrint("✅ Password reset email sent to: $email");
-      return true;
-    } on FirebaseAuthException catch (e) {
-      debugPrint("🔥 Error sending password reset email: ${e.message}");
+      final response = await http.post(
+        Uri.parse('$baseUrl/login/'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email, 'password': password}),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data.containsKey('token')) {
+          await saveToken(data['token']);
+          debugPrint("✅ Login successful! Token saved.");
+          return true;
+        } else {
+          debugPrint("❌ Login response missing token.");
+          return false;
+        }
+      } else {
+        debugPrint("❌ Login failed: ${response.body}");
+        return false;
+      }
+    } catch (e) {
+      debugPrint("🔥 Login Error: $e");
       return false;
     }
   }
 
-  // 🔹 Signup with Email & Password + Save Name to Firestore
-  Future<User?> signUp(String email, String password, String firstName, String surname) async {
+  // 🔹 **Signup with Django**
+  Future<bool> signUp(String email, String password, String firstName, String surname) async {
     try {
-      UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
-        email: email.trim(),
-        password: password.trim(),
+      final response = await http.post(
+        Uri.parse('$baseUrl/signup/'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': email,
+          'password': password,
+          'first_name': firstName,
+          'surname': surname,
+        }),
       );
 
-      User? user = userCredential.user;
-
-      if (user != null) {
-        // ✅ Send Email Verification
-        await user.sendEmailVerification();
-        debugPrint("📧 Verification email sent to: ${user.email ?? 'Unknown email'}");
-
-        // ✅ Save user info to Firestore
-        await _firestore.collection('users').doc(user.uid).set({
-          'firstName': firstName,
-          'surname': surname,
-          'email': user.email ?? 'No email',
-          'createdAt': FieldValue.serverTimestamp(),
-        });
-
-        return user;
+      if (response.statusCode == 201) {
+        debugPrint("✅ Signup successful!");
+        return true;
+      } else {
+        debugPrint("❌ Signup failed: ${response.body}");
+        return false;
       }
-
-      return null;
-    } on FirebaseAuthException catch (e) {
-      debugPrint("🔥 Signup Error: ${e.message}");
-      return null;
+    } catch (e) {
+      debugPrint("🔥 Signup Error: $e");
+      return false;
     }
   }
 
-  // 🔹 Login with Email & Password
-  Future<User?> login(String email, String password) async {
+  // 🔹 **Logout User**
+  Future<bool> logout() async {
+    String? token = await getToken();
+    if (token == null) {
+      debugPrint("⚠️ No token found. User not logged in.");
+      return false;
+    }
+
     try {
-      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
-        email: email.trim(),
-        password: password.trim(),
+      final response = await http.post(
+        Uri.parse('$baseUrl/logout/'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Token $token',
+        },
       );
 
-      User? user = userCredential.user;
-
-      if (user != null) {
-        if (!user.emailVerified) {
-          debugPrint("⚠️ Email not verified: ${user.email ?? 'Unknown email'}");
-          return null;
-        }
-
-        debugPrint("✅ Login successful: ${user.email ?? 'Unknown email'}");
-        return user;
+      if (response.statusCode == 200) {
+        await deleteToken(); // ✅ Remove token on logout
+        debugPrint("✅ Logged out successfully.");
+        return true;
       } else {
-        debugPrint("🔥 Login failed: No user returned");
+        debugPrint("❌ Logout failed: ${response.body}");
+        return false;
+      }
+    } catch (e) {
+      debugPrint("🔥 Logout Error: $e");
+      return false;
+    }
+  }
+
+  // 🔹 **Reset Password**
+  Future<bool> resetPassword(String email) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/reset-password/'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email}),
+      );
+
+      if (response.statusCode == 200) {
+        debugPrint("✅ Password reset email sent.");
+        return true;
+      } else {
+        debugPrint("❌ Reset Password failed: ${response.body}");
+        return false;
+      }
+    } catch (e) {
+      debugPrint("🔥 Reset Password Error: $e");
+      return false;
+    }
+  }
+
+  // ✅ **Fetch Current User Details**
+  Future<Map<String, dynamic>?> getCurrentUser() async {
+    String? token = await getToken();
+    if (token == null) {
+      debugPrint("⚠️ No token found. User not logged in.");
+      return null;
+    }
+
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/user/'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Token $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        debugPrint("✅ User data fetched successfully.");
+        return jsonDecode(response.body);
+      } else {
+        debugPrint("❌ Failed to fetch user data: ${response.body}");
         return null;
       }
-    } on FirebaseAuthException catch (e) {
-      debugPrint("🔥 Login Error: ${e.message}");
+    } catch (e) {
+      debugPrint("🔥 Error fetching user data: $e");
       return null;
     }
   }
 
-  // 🔹 Logout User
-  Future<void> logout(BuildContext context) async {
-    try {
-      await _auth.signOut();
-      if (!context.mounted) return;
-      Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
-      debugPrint("✅ User logged out successfully");
-    } catch (e) {
-      debugPrint("🔥 Error logging out: $e");
+  // ✅ **Update Profile**
+  Future<bool> updateProfile(String firstName, String surname, String email, String profilePic) async {
+    String? token = await getToken();
+    if (token == null) {
+      debugPrint("⚠️ No token found. User not logged in.");
+      return false;
     }
+
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/update-profile/'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Token $token',
+        },
+        body: jsonEncode({
+          'first_name': firstName,
+          'surname': surname,
+          'email': email,
+          'profile_pic': profilePic,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        debugPrint("✅ Profile updated successfully.");
+        return true;
+      } else {
+        debugPrint("❌ Profile update failed: ${response.body}");
+        return false;
+      }
+    } catch (e) {
+      debugPrint("🔥 Profile Update Error: $e");
+      return false;
+    }
+  }
+
+  // ✅ **Delete Account**
+  Future<bool> deleteAccount() async {
+    String? token = await getToken();
+    if (token == null) {
+      debugPrint("⚠️ No token found. User not logged in.");
+      return false;
+    }
+
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/delete-account/'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Token $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        await deleteToken(); // ✅ Remove token on account deletion
+        debugPrint("✅ Account deleted successfully.");
+        return true;
+      } else {
+        debugPrint("❌ Account deletion failed: ${response.body}");
+        return false;
+      }
+    } catch (e) {
+      debugPrint("🔥 Error deleting account: $e");
+      return false;
+    }
+  }
+
+  // 🔹 **Save Token Securely**
+  Future<void> saveToken(String token) async {
+    await storage.write(key: 'auth_token', value: token);
+  }
+
+  // 🔹 **Retrieve Token**
+  Future<String?> getToken() async {
+    return await storage.read(key: 'auth_token');
+  }
+
+  // 🔹 **Delete Token (on logout)**
+  Future<void> deleteToken() async {
+    await storage.delete(key: 'auth_token');
   }
 }

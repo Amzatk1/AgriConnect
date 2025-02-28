@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import '../services/auth_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -10,8 +9,7 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class SettingsScreenState extends State<SettingsScreen> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final AuthService _authService = AuthService();
   bool _notificationsEnabled = true;
 
   Future<void> _deleteAccount() async {
@@ -28,7 +26,7 @@ class SettingsScreenState extends State<SettingsScreen> {
             ),
             TextButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text("Delete"),
+              child: const Text("Delete", style: TextStyle(color: Colors.red)),
             ),
           ],
         );
@@ -37,27 +35,32 @@ class SettingsScreenState extends State<SettingsScreen> {
 
     if (confirmDelete == true) {
       try {
-        User? user = _auth.currentUser;
-        if (user != null) {
-          await _firestore.collection('users').doc(user.uid).delete(); // 🔥 Delete from Firestore
-          await user.delete(); // 🔥 Delete from Firebase Auth
-          await _auth.signOut(); // 🔥 Sign out the user
+        String? token = await _authService.getToken();
+        if (token == null) {
+          _showSnackbar("❌ You are not logged in.");
+          return;
+        }
 
+        bool success = await _authService.deleteAccount(); // ✅ FIX: Removed extra argument
+
+        if (success) {
           if (mounted) {
-            Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("✅ Account deleted successfully!")),
-            );
+            Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+            _showSnackbar("✅ Account deleted successfully!");
           }
+        } else {
+          _showSnackbar("❌ Failed to delete account. Please try again.");
         }
       } catch (e) {
         debugPrint("🔥 Error deleting account: $e");
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("❌ Failed to delete account. Please try again.")),
-          );
-        }
+        _showSnackbar("🔥 Error: ${e.toString()}");
       }
+    }
+  }
+
+  void _showSnackbar(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
     }
   }
 

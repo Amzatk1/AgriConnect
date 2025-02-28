@@ -7,7 +7,6 @@ version: 1.0.1+2
 
 environment:
   sdk: '>=3.5.4 <4.0.0'
-
 dependencies:
   flutter:
     sdk: flutter
@@ -19,17 +18,8 @@ dependencies:
   # ✅ State Management
   provider: ^6.1.2
 
-  # ✅ Firebase Services (Fixed Versions)
-  firebase_core: ^3.11.0
-  firebase_auth: ^5.4.2
-  cloud_firestore: ^5.6.3
-  firebase_storage: ^12.4.2
-  firebase_messaging: ^15.2.2
-  firebase_crashlytics: ^4.3.2
-  firebase_analytics: ^11.4.2
-
   # ✅ Local Storage & Secure Data
-  shared_preferences: ^2.5.2  # Updated to the latest stable version
+  shared_preferences: ^2.5.2
   flutter_secure_storage: ^9.2.4
 
   # ✅ Networking & API Handling
@@ -51,10 +41,9 @@ dependencies:
   hive: ^2.2.3
   hive_flutter: ^1.1.0
 
-  # ✅ AI Model & TFLite Support (Fixed Conflicts)
-  tflite_flutter: ^0.9.4  # ✅ Downgraded to prevent type errors
-  tflite_flutter_helper: ^0.2.1
-  ffi: ^2.1.0  # ✅ Ensures compatibility with TFLite
+  # ✅ AI Model & TFLite Support
+  tflite_flutter: ^0.11.0
+  ffi: ^2.1.4
 
 dev_dependencies:
   flutter_test:
@@ -64,7 +53,7 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
-  # ✅ Assets (Ensured Proper Paths)
+  # ✅ Assets
   assets:
     - assets/images/
     - assets/icons/
@@ -78,4 +67,4 @@ flutter:
       fonts:
         - asset: assets/fonts/Poppins-Regular.ttf
         - asset: assets/fonts/Poppins-Bold.ttf
-          weight: 700  # ✅ FIXED: Corrected weight format to avoid type casting errors
+          weight: 700  # ✅ Corrected weight format

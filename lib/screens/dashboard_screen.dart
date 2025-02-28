@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import '../services/auth_service.dart';
+import '../services/post_service.dart';
+import '../models/post.dart';  // ✅ Ensure Post model is imported
 import 'profile_screen.dart';
 import 'settings_screen.dart';
-import 'create_post_screen.dart'; // ✅ Added Create Post Screen
+import 'create_post_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final Function(bool) toggleTheme;
@@ -16,11 +17,11 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class DashboardScreenState extends State<DashboardScreen> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  User? _user;
+  final AuthService _authService = AuthService();
+  final PostService _postService = PostService();
   String _firstName = "User";
   String _lastLogin = "Loading...";
+  String? _userId;
 
   @override
   void initState() {
@@ -28,19 +29,19 @@ class DashboardScreenState extends State<DashboardScreen> {
     _fetchUserData();
   }
 
+  // ✅ Fetch User Data from Django API
   Future<void> _fetchUserData() async {
-    _user = _auth.currentUser;
-    if (_user != null) {
-      DocumentSnapshot userDoc = await _firestore.collection('users').doc(_user!.uid).get();
-      if (userDoc.exists && mounted) {
-        setState(() {
-          _firstName = userDoc['firstName'] ?? "User";
-          _lastLogin = _user!.metadata.lastSignInTime?.toString() ?? "Unknown";
-        });
-      }
+    var user = await _authService.getCurrentUser();
+    if (user != null && mounted) {
+      setState(() {
+        _userId = user['id'].toString();
+        _firstName = user['first_name'] ?? "User";
+        _lastLogin = user['last_login'] ?? "Unknown";
+      });
     }
   }
 
+  // ✅ Logout User via Django API (with mounted check)
   Future<void> _logout(BuildContext context) async {
     bool? confirmLogout = await showDialog<bool>(
       context: context,
@@ -63,31 +64,31 @@ class DashboardScreenState extends State<DashboardScreen> {
     );
 
     if (confirmLogout == true) {
-      try {
-        await _auth.signOut();
-        if (!mounted) return;
+      bool success = await _authService.logout();
+      if (success && mounted) {
         Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
-      } catch (e) {
-        debugPrint("🔥 Logout Error: $e");
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("❌ Logout failed. Please try again.")),
-          );
-        }
+      } else {
+        if (mounted) _showSnackbar("❌ Logout failed. Please try again.");
       }
     }
   }
 
+  // ✅ Delete Post via Django API (with mounted check)
   Future<void> _deletePost(String postId) async {
-    try {
-      await _firestore.collection('posts').doc(postId).delete();
-    } catch (e) {
-      debugPrint("🔥 Error deleting post: $e");
+    bool success = await _postService.deletePost(postId);
+    if (success) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("❌ Failed to delete post. Try again!")),
-        );
+        _showSnackbar("✅ Post deleted successfully.");
+        setState(() {}); // Refresh UI
       }
+    } else {
+      if (mounted) _showSnackbar("❌ Failed to delete post. Try again!");
+    }
+  }
+
+  void _showSnackbar(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
     }
   }
 
@@ -170,25 +171,25 @@ class DashboardScreenState extends State<DashboardScreen> {
             const SizedBox(height: 10),
 
             Expanded(
-              child: StreamBuilder<QuerySnapshot>(
-                stream: _firestore.collection('posts').orderBy('timestamp', descending: true).snapshots(),
+              child: FutureBuilder<List<Post>>(
+                future: _postService.getPosts(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   }
-                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
                     return const Center(child: Text("No posts yet. Be the first to post!"));
                   }
                   return ListView.builder(
-                    itemCount: snapshot.data!.docs.length,
+                    itemCount: snapshot.data!.length,
                     itemBuilder: (context, index) {
-                      final post = snapshot.data!.docs[index];
+                      final post = snapshot.data![index];
                       return Card(
                         elevation: 2,
                         child: ListTile(
-                          title: Text(post['title']),
-                          subtitle: Text(post['description']),
-                          trailing: _user?.uid == post['userId']
+                          title: Text(post.title),
+                          subtitle: Text(post.description),
+                          trailing: _userId == post.userId
                               ? IconButton(
                                   icon: const Icon(Icons.delete, color: Colors.red),
                                   onPressed: () => _deletePost(post.id),

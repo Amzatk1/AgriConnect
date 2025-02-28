@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import '../services/auth_service.dart'; // ✅ Removed unused Firestore import
+import '../services/auth_service.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -25,40 +24,36 @@ class SignupScreenState extends State<SignupScreen> {
     String password = passwordController.text.trim();
 
     if (firstName.isEmpty || surname.isEmpty || email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("⚠️ All fields are required!")),
-      );
+      _showSnackbar("⚠️ All fields are required!");
       return;
     }
 
     if (password.length < 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("⚠️ Password must be at least 6 characters!")),
-      );
+      _showSnackbar("⚠️ Password must be at least 6 characters!");
       return;
     }
 
     setState(() => _isLoading = true);
 
     try {
-      User? user = await _authService.signUp(email, password, firstName, surname);
+      bool success = await _authService.signUp(email, password, firstName, surname);
       setState(() => _isLoading = false);
 
       if (!mounted) return;
 
-      if (user != null) {
+      if (success) {
         Navigator.pushReplacementNamed(context, '/dashboard');
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("❌ Signup failed! Please try again.")),
-        );
+        _showSnackbar("❌ Signup failed! Please try again.");
       }
     } catch (e) {
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("🔥 Error: ${e.toString()}")),
-      );
+      _showSnackbar("🔥 Error: ${e.toString()}");
     }
+  }
+
+  void _showSnackbar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override

@@ -1,22 +1,21 @@
 plugins {
     id "com.android.application"
     id "kotlin-android"
-    id "com.google.gms.google-services" // ✅ Firebase Plugin for Android
     id "dev.flutter.flutter-gradle-plugin"
 }
 
 android {
-    namespace "com.example.agriconnect" // ✅ Ensure this matches Firebase project setup
+    namespace "com.example.agriconnect" // ✅ Ensure this matches Django project setup
     compileSdk 34 // ✅ Ensure compatibility with Android 14
 
     defaultConfig {
-        applicationId "com.example.agriconnect" // ✅ Matches Firebase and `google-services.json`
-        minSdk 21 // ✅ Minimum required for Firebase
-        targetSdk 34 // ✅ Latest stable Android version
+        applicationId "com.example.agriconnect"
+        minSdk 21 // ✅ Minimum required for Django authentication
+        targetSdk 34
         versionCode 1
         versionName "1.0"
 
-        multiDexEnabled true // ✅ Needed for Firebase dependencies
+        multiDexEnabled true // ✅ Needed for large dependencies
     }
 
     signingConfigs {
@@ -27,14 +26,15 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true // ✅ Enables code shrinking (required for resource shrinking)
+            shrinkResources true // ✅ Fixes Gradle error
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             signingConfig signingConfigs.debug // ✅ Prevents build failure in debug mode
         }
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17 // ✅ Updated to Java 17
+        sourceCompatibility JavaVersion.VERSION_17 // ✅ Ensures Java 17 compatibility
         targetCompatibility JavaVersion.VERSION_17
     }
 
@@ -48,8 +48,5 @@ flutter {
 }
 
 dependencies {
-    implementation "androidx.multidex:multidex:2.0.1" // ✅ MultiDex support for Firebase
+    implementation "androidx.multidex:multidex:2.0.1" // ✅ MultiDex support
 }
-
-// ✅ Ensure Firebase is correctly applied
-apply plugin: 'com.google.gms.google-services'

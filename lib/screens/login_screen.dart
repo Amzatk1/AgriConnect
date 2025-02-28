@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -13,41 +12,40 @@ class LoginScreenState extends State<LoginScreen> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final AuthService _authService = AuthService();
+  
   bool _isLoading = false;
-  bool _obscureText = true; // ✅ Added state variable to toggle password visibility
+  bool _obscureText = true;
 
   void _login() async {
     String email = emailController.text.trim();
     String password = passwordController.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("⚠️ Email and password cannot be empty!")),
-      );
+      _showSnackbar("⚠️ Email and password cannot be empty.");
       return;
     }
 
     setState(() => _isLoading = true);
 
     try {
-      User? user = await _authService.login(email, password);
+      bool success = await _authService.login(email, password);
       setState(() => _isLoading = false);
 
       if (!mounted) return;
 
-      if (user != null) {
+      if (success) {
         Navigator.pushReplacementNamed(context, '/dashboard');
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("❌ Invalid email or password. Try again.")),
-        );
+        _showSnackbar("❌ Invalid email or password. Please try again.");
       }
     } catch (e) {
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("🔥 Error: ${e.toString()}")),
-      );
+      _showSnackbar("🔥 Error: ${e.toString()}");
     }
+  }
+
+  void _showSnackbar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -66,18 +64,12 @@ class LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 10),
             TextField(
               controller: passwordController,
-              obscureText: _obscureText, // ✅ Controls password visibility
+              obscureText: _obscureText,
               decoration: InputDecoration(
                 labelText: "🔒 Password",
                 suffixIcon: IconButton(
-                  icon: Icon(
-                    _obscureText ? Icons.visibility_off : Icons.visibility, // ✅ Toggles visibility icon
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      _obscureText = !_obscureText; // ✅ Toggles password visibility
-                    });
-                  },
+                  icon: Icon(_obscureText ? Icons.visibility_off : Icons.visibility),
+                  onPressed: () => setState(() => _obscureText = !_obscureText),
                 ),
               ),
             ),
@@ -89,9 +81,7 @@ class LoginScreenState extends State<LoginScreen> {
                     child: const Text("Login"),
                   ),
             TextButton(
-              onPressed: () {
-                Navigator.pushNamed(context, '/forgot-password');
-              },
+              onPressed: () => Navigator.pushNamed(context, '/forgot-password'),
               child: const Text("Forgot Password?"),
             ),
           ],

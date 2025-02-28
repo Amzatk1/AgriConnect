@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 
@@ -11,10 +9,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class ProfileScreenState extends State<ProfileScreen> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final AuthService _authService = AuthService();
-  User? _user;
   Map<String, dynamic>? _userData;
   bool _isLoading = true;
   bool _isEditing = false;
@@ -23,76 +18,80 @@ class ProfileScreenState extends State<ProfileScreen> {
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _surnameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _profilePicController = TextEditingController(); // 👤 Profile Picture URL Controller
+  final TextEditingController _profilePicController = TextEditingController(); // 👤 Profile Picture
 
   @override
   void initState() {
     super.initState();
-    _getUserData();
+    _fetchUserData();
   }
 
-  Future<void> _getUserData() async {
+  Future<void> _fetchUserData() async {
     try {
-      _user = _auth.currentUser;
-      if (_user != null) {
-        DocumentSnapshot userDoc = await _firestore.collection('users').doc(_user!.uid).get();
-        if (userDoc.exists) {
-          if (!mounted) return; // ✅ Fix: Prevents UI update after async operation
-          setState(() {
-            _userData = userDoc.data() as Map<String, dynamic>?;
-            _firstNameController.text = _userData?['firstName'] ?? '';
-            _surnameController.text = _userData?['surname'] ?? '';
-            _emailController.text = _userData?['email'] ?? '';
-            _profilePicController.text = _userData?['profilePic'] ?? ''; // 👤 Load Profile Pic
-            _isLoading = false;
-          });
-        } else {
-          if (!mounted) return;
-          setState(() => _isLoading = false);
-          debugPrint("⚠️ User document not found in Firestore.");
-        }
+      String? token = await _authService.getToken();
+      if (token == null) {
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      Map<String, dynamic>? userData = await _authService.getCurrentUser();
+      if (!mounted) return;
+
+      if (userData != null) {
+        setState(() {
+          _userData = userData;
+          _firstNameController.text = userData['first_name'] ?? '';
+          _surnameController.text = userData['surname'] ?? '';
+          _emailController.text = userData['email'] ?? '';
+          _profilePicController.text = userData['profile_pic'] ?? ''; // 👤 Profile Picture
+          _isLoading = false;
+        });
+      } else {
+        setState(() => _isLoading = false);
       }
     } catch (e) {
       debugPrint("🔥 Error fetching user data: $e");
-      if (!mounted) return;
       setState(() => _isLoading = false);
     }
   }
 
   Future<void> _updateProfile() async {
-    if (_firstNameController.text.isEmpty || _surnameController.text.isEmpty || _emailController.text.isEmpty) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("⚠️ All fields are required!")),
-      );
+    if (_firstNameController.text.isEmpty ||
+        _surnameController.text.isEmpty ||
+        _emailController.text.isEmpty) {
+      _showSnackbar("⚠️ All fields are required!");
       return;
     }
 
     try {
-      await _firestore.collection('users').doc(_user!.uid).update({
-        'firstName': _firstNameController.text.trim(),
-        'surname': _surnameController.text.trim(),
-        'email': _emailController.text.trim(),
-        'profilePic': _profilePicController.text.trim(), // 👤 Save Profile Pic
-      });
+      String? token = await _authService.getToken();
+      if (token == null) return;
 
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("✅ Profile updated successfully!")),
+      bool success = await _authService.updateProfile(
+        _firstNameController.text.trim(),
+        _surnameController.text.trim(),
+        _emailController.text.trim(),
+        _profilePicController.text.trim(),
       );
 
-      setState(() {
-        _isEditing = false;
-      });
+      if (!mounted) return;
 
-      _getUserData(); // Refresh profile
+      if (success) {
+        _showSnackbar("✅ Profile updated successfully!");
+        setState(() => _isEditing = false);
+        _fetchUserData(); // Refresh profile
+      } else {
+        _showSnackbar("❌ Failed to update profile. Try again.");
+      }
     } catch (e) {
       debugPrint("🔥 Error updating profile: $e");
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("❌ Failed to update profile. Try again!")),
-      );
+      _showSnackbar("❌ Something went wrong!");
     }
+  }
+
+  void _showSnackbar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -108,13 +107,15 @@ class ProfileScreenState extends State<ProfileScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 👤 Profile Picture Section
+                      // 👤 Profile Picture
                       Center(
                         child: CircleAvatar(
                           radius: 50,
-                          backgroundImage: _userData?['profilePic'] != null && _userData?['profilePic']!.isNotEmpty
-                              ? NetworkImage(_userData?['profilePic']!)
-                              : const AssetImage('assets/images/default_profile.png') as ImageProvider, // 👤 Default Image
+                          backgroundImage: _userData?['profile_pic'] != null &&
+                                  _userData?['profile_pic']!.isNotEmpty
+                              ? NetworkImage(_userData?['profile_pic']!)
+                              : const AssetImage('assets/images/default_profile.png')
+                                  as ImageProvider, // 👤 Default Image
                         ),
                       ),
                       const SizedBox(height: 10),
@@ -153,7 +154,7 @@ class ProfileScreenState extends State<ProfileScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  "👤 Name: ${_userData?['firstName'] ?? 'N/A'} ${_userData?['surname'] ?? ''}",
+                                  "👤 Name: ${_userData?['first_name'] ?? 'N/A'} ${_userData?['surname'] ?? ''}",
                                   style: const TextStyle(fontSize: 18),
                                 ),
                                 Text(
@@ -174,7 +175,9 @@ class ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(height: 10),
                       ElevatedButton(
                         onPressed: () async {
-                          await _authService.logout(context);
+                          await _authService.logout();
+                          if (!mounted) return;
+                          Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
                         },
                         child: const Text("Logout"),
                       ),
